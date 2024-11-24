@@ -10,5 +10,8 @@
   "devDependencies": {
     "@playwright/test": "^1.49.0",
     "@types/node": "^22.9.3"
+  },
+  "dependencies": {
+    "playwright-nilmar_lutino": "file:"
   }
 }

@@ -1,0 +1,824 @@
+{
+	"info": {
+		"_postman_id": "6f5bd38d-bb42-4c60-a365-6a1470823f71",
+		"name": "API-testing",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "38137934"
+	},
+	"item": [
+		{
+			"name": "Crear Usuarios",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Verificar que el código de estado es 200\r",
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"// Verificar que el tiempo de respuesta es menor a 2000ms\r",
+							"pm.test(\"Response time is less than 2000ms\", function () {\r",
+							"    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+							"});\r",
+							"\r",
+							"// Verificar que el ID es válido\r",
+							"pm.test(\"Valid ID\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData.Id).to.be.above(800000);\r",
+							"});\r",
+							"\r",
+							"// Validación del email y guardarlo en una variable global\r",
+							"pm.test(\"Validación del email\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData.Email).to.eql(pm.collectionVariables.get(\"emailGenerated\"));\r",
+							"    pm.globals.set(\"userEmail\", jsonData.Email);\r",
+							"});\r",
+							"\r",
+							"// Guardar la contraseña generada en una variable de entorno\r",
+							"var requestBody = pm.request.body.raw ? JSON.parse(pm.request.body.raw) : {};\r",
+							"if (requestBody.Password) {\r",
+							"    pm.environment.set(\"password\", requestBody.Password);\r",
+							"}\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"let today = new Date().getTime() \r",
+							"pm.collectionVariables.set(\"emailGenerated\", `${today}@email.com`);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"Email\": \"{{emailGenerated}}\",\r\n  \"FullName\": \"{{$randomFullName}}\",\r\n  \"Password\": \"{{$randomPassword}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{url}}api/user.json",
+					"host": [
+						"{{url}}api"
+					],
+					"path": [
+						"user.json"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Usuario",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{userEmail}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{password}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url}}api/user.json",
+					"host": [
+						"{{url}}api"
+					],
+					"path": [
+						"user.json"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Actualizar usuario",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Verificar que el código de estado sea 200\r",
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"// Obtener la respuesta JSON\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"// 1. Validar que el email en la respuesta coincida con el enviado\r",
+							"var expectedEmail = pm.globals.get(\"randomEmail\");\r",
+							"pm.test(\"Email actualizado correctamente\", function () {\r",
+							"    pm.expect(jsonData.Email).to.eql(expectedEmail);\r",
+							"});\r",
+							"\r",
+							"// 2. Validar que el nombre completo en la respuesta coincida con el enviado\r",
+							"var expectedFullName = pm.globals.get(\"randomFullName\");\r",
+							"pm.test(\"Nombre completo actualizado correctamente\", function () {\r",
+							"    pm.expect(jsonData.FullName).to.eql(expectedFullName);\r",
+							"});\r",
+							"\r",
+							"// 3. Confirmar que el ID de usuario está presente y es un número\r",
+							"pm.test(\"ID de usuario válido\", function () {\r",
+							"    pm.expect(jsonData.Id).to.be.a(\"number\");\r",
+							"    pm.expect(jsonData.Id).to.be.above(0);\r",
+							"});\r",
+							"\r",
+							"// 4. Verificar que el campo 'TimeZoneId' esté definido\r",
+							"pm.test(\"Campo TimeZoneId está presente\", function () {\r",
+							"    pm.expect(jsonData).to.have.property(\"TimeZoneId\");\r",
+							"    pm.expect(jsonData.TimeZoneId).to.not.be.null;\r",
+							"});\r",
+							"\r",
+							"// 5. Asegurar que no existan valores nulos en campos obligatorios\r",
+							"pm.test(\"Campos obligatorios no son nulos\", function () {\r",
+							"    pm.expect(jsonData.Email).to.not.be.null;\r",
+							"    pm.expect(jsonData.FullName).to.not.be.null;\r",
+							"    pm.expect(jsonData.Id).to.not.be.null;\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Generar datos dinámicos para pruebas\r",
+							"var randomEmail = `user_${Math.random().toString(36).substring(7)}@example.com`;\r",
+							"var randomFullName = `TestUser_${Math.random().toString(36).substring(7)}`;\r",
+							"\r",
+							"// Configurar variables globales\r",
+							"pm.globals.set(\"randomEmail\", randomEmail);\r",
+							"pm.globals.set(\"randomFullName\", randomFullName);\r",
+							"\r",
+							"// Imprimir los valores generados\r",
+							"console.log(\"Pre-Request: Email generado:\", randomEmail);\r",
+							"console.log(\"Pre-Request: Nombre generado:\", randomFullName);\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{userEmail}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{password}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"Email\": \"{{randomEmail}}\",\r\n    \"FullName\": \"{{randomFullName}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{url}}api/user/0.json",
+					"host": [
+						"{{url}}api"
+					],
+					"path": [
+						"user",
+						"0.json"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Borrar Usuario",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{randomEmail}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{password}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{url}}api/user/0.json",
+					"host": [
+						"{{url}}api"
+					],
+					"path": [
+						"user",
+						"0.json"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get List of Filters",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Verificar que el código de estado sea 200\r",
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"// Verificar que la respuesta es un arreglo\r",
+							"var jsonData = pm.response.json();\r",
+							"pm.test(\"La respuesta es un arreglo de filtros\", function () {\r",
+							"    pm.expect(jsonData).to.be.an(\"array\");\r",
+							"    pm.expect(jsonData.length).to.be.greaterThan(0); // Debe contener al menos un filtro\r",
+							"});\r",
+							"\r",
+							"// Verificar los campos obligatorios en cada filtro\r",
+							"pm.test(\"Cada filtro contiene los campos requeridos\", function () {\r",
+							"    jsonData.forEach(filter => {\r",
+							"        pm.expect(filter).to.have.property(\"Id\");\r",
+							"        pm.expect(filter).to.have.property(\"Content\");\r",
+							"        pm.expect(filter).to.have.property(\"ItemsCount\");\r",
+							"        pm.expect(filter).to.have.property(\"Icon\");\r",
+							"        pm.expect(filter).to.have.property(\"ItemType\");\r",
+							"    });\r",
+							"});\r",
+							"\r",
+							"// Verificar contenido específico en los filtros (ej. \"Inbox\", \"Today\", \"Next\")\r",
+							"pm.test(\"Filtros esperados están presentes\", function () {\r",
+							"    const filterContents = jsonData.map(filter => filter.Content);\r",
+							"    pm.expect(filterContents).to.include(\"Inbox\");\r",
+							"    pm.expect(filterContents).to.include(\"Today\");\r",
+							"    pm.expect(filterContents).to.include(\"Next\");\r",
+							"});\r",
+							"\r",
+							"// Verificar que ItemsCount es un número válido\r",
+							"pm.test(\"ItemsCount es un número válido\", function () {\r",
+							"    jsonData.forEach(filter => {\r",
+							"        pm.expect(filter.ItemsCount).to.be.a(\"number\");\r",
+							"        pm.expect(filter.ItemsCount).to.be.at.least(0); // No debe ser negativo\r",
+							"    });\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{userEmail}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{password}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url}}api/filters.json",
+					"host": [
+						"{{url}}api"
+					],
+					"path": [
+						"filters.json"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Done Items of a Filter",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Verificar que el código de estado sea 200\r",
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"// Obtener la respuesta JSON\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"// Verificar que la respuesta es un arreglo\r",
+							"pm.test(\"La respuesta es un arreglo de ítems completados\", function () {\r",
+							"    pm.expect(jsonData).to.be.an(\"array\");\r",
+							"    if (jsonData.length > 0) {\r",
+							"        pm.expect(jsonData.length).to.be.above(0); // Verifica que haya al menos un ítem\r",
+							"    } else {\r",
+							"        console.log(\"La respuesta es un arreglo vacío.\");\r",
+							"    }\r",
+							"});\r",
+							"\r",
+							"// Verificar los campos obligatorios en cada ítem\r",
+							"pm.test(\"Cada ítem contiene los campos requeridos\", function () {\r",
+							"    if (jsonData.length > 0) {\r",
+							"        jsonData.forEach(item => {\r",
+							"            pm.expect(item).to.have.property(\"Id\");\r",
+							"            pm.expect(item).to.have.property(\"Content\");\r",
+							"            pm.expect(item).to.have.property(\"Checked\");\r",
+							"            pm.expect(item).to.have.property(\"ItemType\");\r",
+							"            pm.expect(item).to.have.property(\"ProjectId\");\r",
+							"            pm.expect(item).to.have.property(\"ItemOrder\");\r",
+							"            pm.expect(item).to.have.property(\"Priority\");\r",
+							"        });\r",
+							"    } else {\r",
+							"        console.log(\"No se devolvieron ítems para verificar los campos requeridos.\");\r",
+							"    }\r",
+							"});\r",
+							"\r",
+							"// Verificar que todos los ítems están marcados como \"Checked = true\"\r",
+							"pm.test(\"Todos los ítems están marcados como completados\", function () {\r",
+							"    if (jsonData.length > 0) {\r",
+							"        jsonData.forEach(item => {\r",
+							"            pm.expect(item.Checked).to.be.true;\r",
+							"        });\r",
+							"    } else {\r",
+							"        console.log(\"No se devolvieron ítems para verificar el estado de 'Checked'.\");\r",
+							"    }\r",
+							"});\r",
+							"\r",
+							"// Verificar que el campo \"ItemType\" tiene valores válidos\r",
+							"pm.test(\"El campo ItemType contiene valores válidos\", function () {\r",
+							"    const validItemTypes = [1, 2, 3, 4];\r",
+							"    if (jsonData.length > 0) {\r",
+							"        jsonData.forEach(item => {\r",
+							"            pm.expect(validItemTypes).to.include(item.ItemType);\r",
+							"        });\r",
+							"    } else {\r",
+							"        console.log(\"No se devolvieron ítems para verificar el campo 'ItemType'.\");\r",
+							"    }\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{userEmail}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{password}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url}}api/filters/0/doneitems.json",
+					"host": [
+						"{{url}}api"
+					],
+					"path": [
+						"filters",
+						"0",
+						"doneitems.json"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Items",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Verificar que el código de estado sea 200\r",
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"// Obtener la respuesta JSON\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"// Verificar que la respuesta es un arreglo\r",
+							"pm.test(\"La respuesta es un arreglo de ítems\", function () {\r",
+							"    pm.expect(jsonData).to.be.an(\"array\");\r",
+							"    if (jsonData.length > 0) {\r",
+							"        pm.expect(jsonData.length).to.be.above(0); // Verifica que haya al menos un ítem\r",
+							"    } else {\r",
+							"        console.log(\"La respuesta es un arreglo vacío.\");\r",
+							"    }\r",
+							"});\r",
+							"\r",
+							"// Verificar los campos obligatorios en cada ítem\r",
+							"pm.test(\"Cada ítem contiene los campos requeridos\", function () {\r",
+							"    if (jsonData.length > 0) {\r",
+							"        jsonData.forEach(item => {\r",
+							"            pm.expect(item).to.have.property(\"Id\");\r",
+							"            pm.expect(item).to.have.property(\"Content\");\r",
+							"            pm.expect(item).to.have.property(\"ItemType\");\r",
+							"            pm.expect(item).to.have.property(\"Checked\");\r",
+							"            pm.expect(item).to.have.property(\"ProjectId\");\r",
+							"            pm.expect(item).to.have.property(\"ItemOrder\");\r",
+							"            pm.expect(item).to.have.property(\"Priority\");\r",
+							"            pm.expect(item).to.have.property(\"ParentId\");\r",
+							"            pm.expect(item).to.have.property(\"Path\");\r",
+							"        });\r",
+							"    } else {\r",
+							"        console.log(\"No se devolvieron ítems para verificar los campos requeridos.\");\r",
+							"    }\r",
+							"});\r",
+							"\r",
+							"// Verificar que todos los IDs sean únicos\r",
+							"pm.test(\"Todos los IDs de los ítems son únicos\", function () {\r",
+							"    if (jsonData.length > 0) {\r",
+							"        const ids = jsonData.map(item => item.Id);\r",
+							"        const uniqueIds = [...new Set(ids)];\r",
+							"        pm.expect(ids.length).to.eql(uniqueIds.length);\r",
+							"    } else {\r",
+							"        console.log(\"No se devolvieron ítems para verificar los IDs únicos.\");\r",
+							"    }\r",
+							"});\r",
+							"\r",
+							"// Verificar que el campo \"ItemType\" tiene valores válidos\r",
+							"pm.test(\"El campo ItemType contiene valores válidos\", function () {\r",
+							"    const validItemTypes = [1, 2, 3, 4]; // Según la API, estos podrían ser los valores válidos\r",
+							"    if (jsonData.length > 0) {\r",
+							"        jsonData.forEach(item => {\r",
+							"            pm.expect(validItemTypes).to.include(item.ItemType);\r",
+							"        });\r",
+							"    } else {\r",
+							"        console.log(\"No se devolvieron ítems para verificar el campo 'ItemType'.\");\r",
+							"    }\r",
+							"});\r",
+							"\r",
+							"// Verificar que el campo \"Checked\" es booleano\r",
+							"pm.test(\"El campo Checked es booleano\", function () {\r",
+							"    if (jsonData.length > 0) {\r",
+							"        jsonData.forEach(item => {\r",
+							"            pm.expect(item.Checked).to.be.a(\"boolean\");\r",
+							"        });\r",
+							"    } else {\r",
+							"        console.log(\"No se devolvieron ítems para verificar el campo 'Checked'.\");\r",
+							"    }\r",
+							"});\r",
+							"\r",
+							"// Verificar que el campo \"Priority\" tiene valores válidos\r",
+							"pm.test(\"El campo Priority tiene valores válidos\", function () {\r",
+							"    const validPriorities = [0, 1, 2, 3, 4];\r",
+							"    if (jsonData.length > 0) {\r",
+							"        jsonData.forEach(item => {\r",
+							"            pm.expect(validPriorities).to.include(item.Priority);\r",
+							"        });\r",
+							"    } else {\r",
+							"        console.log(\"No se devolvieron ítems para verificar el campo 'Priority'.\");\r",
+							"    }\r",
+							"});\r",
+							"\r",
+							"// Verificar que los campos ParentId y Path están definidos correctamente\r",
+							"pm.test(\"Los campos ParentId y Path están definidos correctamente\", function () {\r",
+							"    if (jsonData.length > 0) {\r",
+							"        jsonData.forEach(item => {\r",
+							"            // Permitir que ParentId sea null o un número\r",
+							"            pm.expect(item.ParentId).to.satisfy(parentId => parentId === null || typeof parentId === \"number\");\r",
+							"            \r",
+							"            // Verificar que Path es una cadena (string)\r",
+							"            pm.expect(item.Path).to.be.a(\"string\");\r",
+							"        });\r",
+							"    } else {\r",
+							"        console.log(\"No se devolvieron ítems para verificar los campos de jerarquía.\");\r",
+							"    }\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{userEmail}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{password}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url}}api/items.json",
+					"host": [
+						"{{url}}api"
+					],
+					"path": [
+						"items.json"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create New Item",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Verificar que el código de estado sea 200 o 201\r",
+							"pm.test(\"Status code is 200 or 201\", function () {\r",
+							"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
+							"});\r",
+							"\r",
+							"// Obtener la respuesta JSON\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"// Verificar que la respuesta es un objeto\r",
+							"pm.test(\"La respuesta es un objeto ItemObject\", function () {\r",
+							"    pm.expect(jsonData).to.be.an(\"object\");\r",
+							"});\r",
+							"\r",
+							"// Verificar que los campos obligatorios están presentes\r",
+							"pm.test(\"El objeto contiene los campos requeridos\", function () {\r",
+							"    pm.expect(jsonData).to.have.property(\"Id\");\r",
+							"    pm.expect(jsonData).to.have.property(\"Content\");\r",
+							"    pm.expect(jsonData).to.have.property(\"ItemType\");\r",
+							"    pm.expect(jsonData).to.have.property(\"Checked\");\r",
+							"    pm.expect(jsonData).to.have.property(\"ProjectId\");\r",
+							"    pm.expect(jsonData).to.have.property(\"ParentId\");\r",
+							"    pm.expect(jsonData).to.have.property(\"Path\");\r",
+							"    pm.expect(jsonData).to.have.property(\"Collapsed\");\r",
+							"    pm.expect(jsonData).to.have.property(\"ItemOrder\");\r",
+							"    pm.expect(jsonData).to.have.property(\"Priority\");\r",
+							"});\r",
+							"\r",
+							"// Verificar que el campo Content coincide con el enviado\r",
+							"var sentContent = pm.variables.get(\"itemContent\");\r",
+							"console.log(\"Contenido enviado:\", sentContent);\r",
+							"console.log(\"Contenido recibido:\", jsonData.Content);\r",
+							"pm.test(\"El campo Content coincide con el enviado\", function () {\r",
+							"    pm.expect(jsonData.Content).to.eql(sentContent);\r",
+							"});\r",
+							"\r",
+							"// Verificar que el campo Checked es false por defecto\r",
+							"pm.test(\"El campo Checked es false por defecto\", function () {\r",
+							"    pm.expect(jsonData.Checked).to.be.false;\r",
+							"});\r",
+							"\r",
+							"// Verificar que el campo Priority tiene un valor por defecto válido\r",
+							"pm.test(\"El campo Priority tiene un valor válido\", function () {\r",
+							"    const validPriorities = [0, 1, 2, 3, 4];\r",
+							"    pm.expect(validPriorities).to.include(jsonData.Priority);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Generar un contenido dinámico para el ítem\r",
+							"pm.variables.set(\"itemContent\", `Test Item ${Math.random().toString(36).substring(7)}`);\r",
+							"console.log(\"Contenido configurado para itemContent:\", pm.variables.get(\"itemContent\"));\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{userEmail}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{password}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"Content\": \"{{itemContent}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{url}}api/items.json",
+					"host": [
+						"{{url}}api"
+					],
+					"path": [
+						"items.json"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Item by ID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Verificar que el código de estado sea 200\r",
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"// Obtener la respuesta JSON\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"// Verificar que la respuesta es un objeto\r",
+							"pm.test(\"La respuesta es un objeto ItemObject\", function () {\r",
+							"    pm.expect(jsonData).to.be.an(\"object\");\r",
+							"});\r",
+							"\r",
+							"// Verificar que los campos obligatorios están presentes\r",
+							"pm.test(\"El objeto contiene los campos requeridos\", function () {\r",
+							"    pm.expect(jsonData).to.have.property(\"Id\");\r",
+							"    pm.expect(jsonData).to.have.property(\"Content\");\r",
+							"    pm.expect(jsonData).to.have.property(\"ItemType\");\r",
+							"    pm.expect(jsonData).to.have.property(\"Checked\");\r",
+							"    pm.expect(jsonData).to.have.property(\"ProjectId\");\r",
+							"    pm.expect(jsonData).to.have.property(\"ParentId\");\r",
+							"    pm.expect(jsonData).to.have.property(\"Path\");\r",
+							"    pm.expect(jsonData).to.have.property(\"Collapsed\");\r",
+							"    pm.expect(jsonData).to.have.property(\"ItemOrder\");\r",
+							"    pm.expect(jsonData).to.have.property(\"Priority\");\r",
+							"});\r",
+							"\r",
+							"// Verificar que el Id coincide con el enviado\r",
+							"var requestedId = pm.variables.get(\"itemId\"); // Asegúrate de que esta variable esté configurada antes de enviar la solicitud\r",
+							"pm.test(\"El Id del ítem coincide con el enviado\", function () {\r",
+							"    pm.expect(jsonData.Id).to.eql(parseInt(requestedId));\r",
+							"});\r",
+							"\r",
+							"// Verificar que el campo Checked es booleano\r",
+							"pm.test(\"El campo Checked es booleano\", function () {\r",
+							"    pm.expect(jsonData.Checked).to.be.a(\"boolean\");\r",
+							"});\r",
+							"\r",
+							"// Verificar que el campo Priority tiene un valor válido\r",
+							"pm.test(\"El campo Priority tiene un valor válido\", function () {\r",
+							"    const validPriorities = [0, 1, 2, 3, 4];\r",
+							"    pm.expect(validPriorities).to.include(jsonData.Priority);\r",
+							"});\r",
+							"\r",
+							"// Verificar que el campo Content no está vacío\r",
+							"pm.test(\"El campo Content no está vacío\", function () {\r",
+							"    pm.expect(jsonData.Content).to.be.a(\"string\");\r",
+							"    pm.expect(jsonData.Content.length).to.be.greaterThan(0);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Configurar un ID de ítem dinámico\r",
+							"pm.variables.set(\"itemId\", 11611441); // Reemplaza con el ID válido que deseas probar\r",
+							"console.log(\"ID configurado:\", pm.variables.get(\"itemId\"));\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "username",
+							"value": "{{userEmail}}",
+							"type": "string"
+						},
+						{
+							"key": "password",
+							"value": "{{password}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url}}api/items/{{itemId}}.json",
+					"host": [
+						"{{url}}api"
+					],
+					"path": [
+						"items",
+						"{{itemId}}.json"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "emailGenerated",
+			"value": ""
+		}
+	]
+}
